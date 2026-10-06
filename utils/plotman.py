@@ -59,13 +59,13 @@ def _draw_bands(ax, ts, data, labels=None):
         label = labels.get(name, name) if labels else name
         if np.any(np.asarray(upper) > np.asarray(lower)):
             ax.fill_between(
-                ts, lower, upper, color=color, alpha=0.28, linewidth=0,
-                label=f"{label}: pointwise 95% CI", zorder=1,
+                ts, lower, upper, color=color, alpha=0.18, linewidth=0,
+                label="_nolegend_", zorder=1,
             )
         series.append((name, y, color, label))
     for name, y, color, label in series:
         ax.plot(
-            ts, y, label=f"{label}: mean", linewidth=2.2 if name == "UCB-HARE" else 1.9,
+            ts, y, label=label, linewidth=1.35 if name == "UCB-HARE" else 1.2,
             color=color, zorder=3 if name == "UCB-HARE" else 2,
         )
 
@@ -106,29 +106,21 @@ def plot_q_ablation(ts, regrets_dict, filename):
     plt.close(fig)
 
 
-def plot_conditional_policy_value(ts, conditional_values, filename):
-    ts, data = _downsample(ts, {"UCB-HARE": (np.asarray(conditional_values),)})
-    y = data["UCB-HARE"][0]
-    fig, ax = plt.subplots(figsize=(7.2, 3.8))
-    ax.step(ts, y, where="post", color="blue", linewidth=1.2, label="One-run $\\tilde m_t$")
-    ax.set(xlabel='Round $t$', ylabel=r"Conditional expected reward $\tilde m_t$")
-    ax.legend(loc="best", frameon=True)
-    ax.grid(alpha=0.3)
-    fig.tight_layout()
-    _save(fig, filename)
-    plt.close(fig)
-
-
-def plot_mt(ts, mt_dict, filename="expt_C_mc.png"):
-    ts, data = _downsample(ts, mt_dict)
-    fig, ax = plt.subplots(figsize=(7.2, 3.8))
-    _draw_bands(ax, ts, data)
-    ax.set(
-        xlabel='Round $t$', ylabel=r"Estimated ex-ante reward $m_t$",
-        title=r"Across-run estimates of $m_t$",
-    )
-    ax.legend(loc='best', frameon=True)
-    ax.grid(alpha=0.3)
+def plot_mt(ts, mt_dict, filename="expt_C_mc.png", smoothed_data=None):
+    original_ts = np.asarray(ts)
+    ts, data = _downsample(original_ts, mt_dict)
+    fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.6), sharey=True)
+    if smoothed_data is not None:
+        _, smoothed = _downsample(original_ts, smoothed_data)
+        _draw_bands(axes[0], ts, smoothed)
+        axes[0].set_title("500-round moving average")
+    _draw_bands(axes[1], ts, data)
+    axes[1].set_title(r"Per-round estimate of $m_t$")
+    for ax in axes:
+        ax.set_xlabel('Round $t$')
+        ax.legend(loc='best', frameon=True, fontsize=8)
+        ax.grid(alpha=0.3)
+    axes[0].set_ylabel(r"Expected arm mean $m_t=\mathbb{E}[\mu_{I_t}]$")
     fig.tight_layout()
     _save(fig, filename)
     plt.close(fig)

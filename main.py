@@ -9,15 +9,14 @@ from experiments.runners import (
     run_parallel_hare_policy_values,
     run_parallel_welfarist,
     run_parallel_explore_ucb,
-    run_single_hare_with_policy_value,
     calculate_p_mean_regret,
     estimate_mean_reward_band,
+    moving_average_traces,
 )
 from utils.plotman import (
     plot_regret_comparison,
     plot_q_ablation,
     plot_mt,
-    plot_conditional_policy_value,
 )
 from utils.cacheman import load_or_run
 
@@ -83,7 +82,7 @@ def evaluate_q_vary(means, horizon, trials, force_rerun=False, seed=SEED):
 
 
 def evaluate_mt(force_rerun=False, trials=NUM_TRIALS, seed=SEED):
-    print("\nExperiment C: conditional and unconditional reward")
+    print("\nExperiment C: across-run estimate of expected reward")
     means = np.array([200.0, 400.0, 600.0, 800.0, 1000.0] + [10.0] * 195)
     horizon, sigma_sq, p = 5_000, 400.0, -2.0
     ts = np.arange(1, horizon + 1)
@@ -96,18 +95,16 @@ def evaluate_mt(force_rerun=False, trials=NUM_TRIALS, seed=SEED):
         force_rerun,
     )
     arms_wel = load_welfarist(means, horizon, trials, sigma_sq, p, force_rerun, seed + 40_000)
-    conditional_name = cache_name("hare_conditional", means, horizon, 1, sigma_sq, seed + 50_000)
-    conditional_values = load_or_run(
-        conditional_name,
-        lambda: run_single_hare_with_policy_value(means, horizon, sigma_sq, ENV_TYPE, seed + 50_000)[1],
-        force_rerun,
-    )
-    plot_conditional_policy_value(ts, conditional_values, "expt_C_conditional.png")
-    mc = {
-        "UCB-HARE": estimate_mean_reward_band(hare_policy_values),
-        "Welfarist UCB": estimate_mean_reward_band(means[np.asarray(arms_wel, dtype=int)]),
+    run_values = {
+        "UCB-HARE": hare_policy_values,
+        "Welfarist UCB": means[np.asarray(arms_wel, dtype=int)],
     }
-    plot_mt(ts, mc, "expt_C_mc.png")
+    pointwise = {name: estimate_mean_reward_band(values) for name, values in run_values.items()}
+    smoothed = {
+        name: estimate_mean_reward_band(moving_average_traces(values, window=500))
+        for name, values in run_values.items()
+    }
+    plot_mt(ts, pointwise, "expt_C_mc.png", smoothed_data=smoothed)
 
 
 def evaluate_d(force_rerun=False, horizon=T_MAX, trials=NUM_TRIALS, seed=SEED):

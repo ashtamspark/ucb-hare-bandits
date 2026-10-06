@@ -28,11 +28,6 @@ def run_parallel_hare_policy_values(means, T, sigma_sq, env_type, num_trials, n_
     return np.vstack([result[1] for result in results])
 
 
-def run_single_hare_with_policy_value(means, T, sigma_sq, env_type, seed=42):
-    """Return one action history and its conditional policy-value trace."""
-    return simulate_hare(means, T, sigma_sq, env_type, seed)
-
-
 def run_parallel_welfarist(means, T, sigma_sq, env_type, p, num_trials, n_jobs=-1, seed=42):
     print(f"Spawning {num_trials} parallel Welfarist instances...")
     results = Parallel(n_jobs=n_jobs)(
@@ -87,3 +82,21 @@ def estimate_mean_reward_band(run_traces, confidence=0.95):
     z = NormalDist().inv_cdf((1.0 + confidence) / 2.0)
     half_width = z * run_traces.std(axis=0, ddof=1) / np.sqrt(run_traces.shape[0])
     return center, np.maximum(0.0, center - half_width), center + half_width
+
+
+def moving_average_traces(run_traces, window=500):
+    """Centered, edge-corrected moving average of each independent run trace."""
+    traces = np.asarray(run_traces, dtype=float)
+    if traces.ndim != 2:
+        raise ValueError("run_traces must have shape (runs, rounds)")
+    if window < 1:
+        raise ValueError("window must be positive")
+    left = window // 2
+    right = window - left
+    cumulative = np.concatenate(
+        (np.zeros((traces.shape[0], 1)), np.cumsum(traces, axis=1)), axis=1
+    )
+    rounds = np.arange(traces.shape[1])
+    start = np.maximum(0, rounds - left)
+    stop = np.minimum(traces.shape[1], rounds + right)
+    return (cumulative[:, stop] - cumulative[:, start]) / (stop - start)
