@@ -149,8 +149,11 @@ def plot_k_comparison(ts, curves, p, filename):
         title=rf"Fairness level $p = {p:g}$",
     )
     ax.set_xscale("log")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.04), frameon=True, ncol=2)
+    # Keep the compact in-axes placement used by the original regret plots.
+    # The four entries fit in the upper-right without obscuring the early-time
+    # comparison, and avoid reserving a large strip above the axes.
+    ax.legend(loc="upper right", frameon=True, fontsize=9)
     ax.grid(alpha=0.3)
-    fig.tight_layout(rect=(0, 0, 1, 0.9))
+    fig.tight_layout()
     _save(fig, filename)
     plt.close(fig)
