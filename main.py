@@ -21,8 +21,8 @@ from utils.plotman import (
 )
 from utils.cacheman import load_or_run
 
-RESULTS = Path("results")
-RESULTS.mkdir(exist_ok=True)
+RESULTS = Path(__file__).resolve().parent / "results"
+RESULTS.mkdir(parents=True, exist_ok=True)
 SEED = 42
 T_MAX = 1_000_000
 NUM_TRIALS = 50

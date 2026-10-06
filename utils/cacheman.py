@@ -1,15 +1,15 @@
-import os
+from pathlib import Path
 import numpy as np
 
-CACHE_DIR = "cached_data"
-os.makedirs(CACHE_DIR, exist_ok=True)
+CACHE_DIR = Path(__file__).resolve().parents[1] / "cached_data"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def load_or_run(filename, func, force_rerun=False):
     """
     Loads a cached NumPy array from disk, or executes the provided function to generate it.
     """
-    filepath = os.path.join(CACHE_DIR, filename)
+    filepath = CACHE_DIR / filename
     
     if not force_rerun and os.path.exists(filepath):
         print(f"[CACHE HIT] Loading {filename}...")

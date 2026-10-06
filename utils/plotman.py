@@ -3,15 +3,45 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 COLORS = {"UCB-HARE": "blue", "Welfarist UCB": "orange", "Explore-Then-UCB": "green"}
+RESULTS_DIR = Path(__file__).resolve().parents[1] / "results"
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _downsample(ts, arrays, num_points=10000):
-    if len(ts) <= num_points:
-        return np.asarray(ts), arrays
-    idx = np.linspace(0, len(ts) - 1, num_points, dtype=int)
-    return np.asarray(ts)[idx], {key: tuple(np.asarray(part)[idx] for part in value) for key, value in arrays.items()}
+    """Downsample aligned curves, preserving arrays and confidence-band tuples."""
+    ts = np.asarray(ts)
+    if ts.ndim != 1:
+        raise ValueError(f"ts must be one-dimensional; received shape {ts.shape}")
+
+    normalized = {}
+    for name, value in arrays.items():
+        is_tuple = isinstance(value, tuple)
+        parts = value if is_tuple else (value,)
+        converted = tuple(np.asarray(part) for part in parts)
+        for part in converted:
+            if part.ndim != 1 or part.shape[0] != ts.shape[0]:
+                raise ValueError(
+                    f"curve {name!r} must be one-dimensional and match ts "
+                    f"(length {ts.shape[0]}); received shape {part.shape}"
+                )
+        normalized[name] = converted if is_tuple else converted[0]
+
+    if ts.size <= num_points:
+        return ts, normalized
+
+    idx = np.linspace(0, ts.size - 1, num_points, dtype=int)
+    sampled = {
+        name: tuple(part[idx] for part in value) if isinstance(value, tuple) else value[idx]
+        for name, value in normalized.items()
+    }
+    return ts[idx], sampled
+
+
+def _save(fig, filename):
+    fig.savefig(RESULTS_DIR / filename, dpi=300)
 
 
 def _band(value):
@@ -45,7 +75,7 @@ def plot_regret_comparison(ts, regrets_dict, p, filename):
     ax.legend(loc='best', frameon=True)
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    fig.savefig(f"results/{filename}", dpi=300)
+    _save(fig, filename)
     plt.close(fig)
 
 
@@ -63,7 +93,7 @@ def plot_q_ablation(ts, regrets_dict, filename):
     ax.legend(loc='best', frameon=True)
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    fig.savefig(f"results/{filename}", dpi=300)
+    _save(fig, filename)
     plt.close(fig)
 
 
@@ -76,7 +106,7 @@ def plot_conditional_policy_value(ts, conditional_values, filename):
     ax.legend(loc="best", frameon=True)
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    fig.savefig(f"results/{filename}", dpi=300)
+    _save(fig, filename)
     plt.close(fig)
 
 
@@ -88,7 +118,7 @@ def plot_mt(ts, mt_dict, filename="expt_C_mc.png"):
     ax.legend(loc='best', frameon=True)
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    fig.savefig(f"results/{filename}", dpi=300)
+    _save(fig, filename)
     plt.close(fig)
 
 
@@ -106,5 +136,5 @@ def plot_k_comparison(ts, curves, p, filename):
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.04), frameon=True, ncol=2)
     ax.grid(alpha=0.3)
     fig.tight_layout(rect=(0, 0, 1, 0.9))
-    fig.savefig(f"results/{filename}", dpi=300)
+    _save(fig, filename)
     plt.close(fig)
