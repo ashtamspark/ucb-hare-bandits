@@ -52,13 +52,22 @@ def _band(value):
 
 
 def _draw_bands(ax, ts, data, labels=None):
+    series = []
     for name, value in data.items():
         y, lower, upper = _band(value)
         color = COLORS.get(name, None)
         label = labels.get(name, name) if labels else name
-        ax.plot(ts, y, label=label, linewidth=2.2 if name == "UCB-HARE" else 1.9, color=color, zorder=3 if name == "UCB-HARE" else 2)
         if np.any(np.asarray(upper) > np.asarray(lower)):
-            ax.fill_between(ts, lower, upper, color=color, alpha=0.18, linewidth=0, zorder=1)
+            ax.fill_between(
+                ts, lower, upper, color=color, alpha=0.28, linewidth=0,
+                label=f"{label}: pointwise 95% CI", zorder=1,
+            )
+        series.append((name, y, color, label))
+    for name, y, color, label in series:
+        ax.plot(
+            ts, y, label=f"{label}: mean", linewidth=2.2 if name == "UCB-HARE" else 1.9,
+            color=color, zorder=3 if name == "UCB-HARE" else 2,
+        )
 
 
 def plot_regret_comparison(ts, regrets_dict, p, filename):
@@ -101,7 +110,7 @@ def plot_conditional_policy_value(ts, conditional_values, filename):
     ts, data = _downsample(ts, {"UCB-HARE": (np.asarray(conditional_values),)})
     y = data["UCB-HARE"][0]
     fig, ax = plt.subplots(figsize=(7.2, 3.8))
-    ax.plot(ts, y, color="blue", linewidth=1.2, label="One-run $\\tilde m_t$")
+    ax.step(ts, y, where="post", color="blue", linewidth=1.2, label="One-run $\\tilde m_t$")
     ax.set(xlabel='Round $t$', ylabel=r"Conditional expected reward $\tilde m_t$")
     ax.legend(loc="best", frameon=True)
     ax.grid(alpha=0.3)
@@ -114,7 +123,10 @@ def plot_mt(ts, mt_dict, filename="expt_C_mc.png"):
     ts, data = _downsample(ts, mt_dict)
     fig, ax = plt.subplots(figsize=(7.2, 3.8))
     _draw_bands(ax, ts, data)
-    ax.set(xlabel='Round $t$', ylabel=r"Estimated ex-ante reward $m_t$")
+    ax.set(
+        xlabel='Round $t$', ylabel=r"Estimated ex-ante reward $m_t$",
+        title=r"Across-run estimates of $m_t$",
+    )
     ax.legend(loc='best', frameon=True)
     ax.grid(alpha=0.3)
     fig.tight_layout()
@@ -129,9 +141,13 @@ def plot_k_comparison(ts, curves, p, filename):
     for name, value in curves.items():
         y = np.asarray(value)
         color = "blue" if name.startswith("UCB-HARE") else "orange"
-        linestyle = "-" if "k=10" in name else "--"
+        arm_count = name.rsplit("k=", 1)[-1].strip()
+        linestyle = "--" if arm_count == "10" else "-"
         ax.plot(ts[mask], y[mask], color=color, linestyle=linestyle, linewidth=2, label=name)
-    ax.set(xlabel="Round $t$ (log scale)", ylabel=r"$p$-mean regret")
+    ax.set(
+        xlabel="Round $t$ (log scale)", ylabel=r"$p$-mean regret",
+        title=rf"Fairness level $p = {p:g}$",
+    )
     ax.set_xscale("log")
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.04), frameon=True, ncol=2)
     ax.grid(alpha=0.3)

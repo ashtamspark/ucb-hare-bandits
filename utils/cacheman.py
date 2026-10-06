@@ -11,7 +11,7 @@ def load_or_run(filename, func, force_rerun=False):
     """
     filepath = CACHE_DIR / filename
     
-    if not force_rerun and os.path.exists(filepath):
+    if not force_rerun and filepath.exists():
         print(f"[CACHE HIT] Loading {filename}...")
         return np.load(filepath, allow_pickle=True)
     
