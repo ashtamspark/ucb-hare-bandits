@@ -59,7 +59,7 @@ def _draw_bands(ax, ts, data, labels=None):
         label = labels.get(name, name) if labels else name
         if np.any(np.asarray(upper) > np.asarray(lower)):
             ax.fill_between(
-                ts, lower, upper, color=color, alpha=0.18, linewidth=0,
+                ts, lower, upper, color=color, alpha=0.14, linewidth=0,
                 label="_nolegend_", zorder=1,
             )
         series.append((name, y, color, label))
@@ -113,7 +113,7 @@ def plot_mt(ts, mt_dict, filename="expt_C_mc.png"):
     _draw_bands(ax, ts, data)
     ax.set_xlabel("Round $t$")
     ax.set_ylabel(r"Estimate $\widehat{m}_t$")
-    ax.set_title(r"Across-run estimate of $m_t$")
+    ax.set_title(r"Monte Carlo estimate of $m_t$")
     ax.legend(loc="best", frameon=True, fontsize=9)
     ax.grid(alpha=0.3)
     fig.tight_layout()

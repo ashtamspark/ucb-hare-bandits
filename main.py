@@ -25,6 +25,7 @@ RESULTS.mkdir(parents=True, exist_ok=True)
 SEED = 42
 T_MAX = 1_000_000
 NUM_TRIALS = 50
+C_TRIALS = 500
 SIGMA_SQ = 400.0
 ENV_TYPE = 1
 K_ARMS = 50
@@ -81,7 +82,7 @@ def evaluate_q_vary(means, horizon, trials, force_rerun=False, seed=SEED):
     plot_q_ablation(ts, results, "expt_B_vary_q.png")
 
 
-def evaluate_mt(force_rerun=False, trials=NUM_TRIALS, seed=SEED):
+def evaluate_mt(force_rerun=False, trials=C_TRIALS, seed=SEED):
     print("\nExperiment C: estimating m_t from independent runs")
     means = np.array([200.0, 400.0, 600.0, 800.0, 1000.0] + [10.0] * 195)
     horizon, sigma_sq, p = 5_000, 400.0, -2.0
@@ -124,7 +125,10 @@ def main():
     parser.add_argument("--expt", choices=("a", "b", "c", "d", "all"), default="all")
     parser.add_argument("--force-rerun", action="store_true")
     parser.add_argument("--horizon", type=int, default=T_MAX)
-    parser.add_argument("--trials", type=int, default=NUM_TRIALS)
+    parser.add_argument("--trials", type=int, default=NUM_TRIALS,
+                        help="Independent runs for Experiments A, B, and D")
+    parser.add_argument("--c-trials", type=int, default=C_TRIALS,
+                        help="Independent runs for Experiment C (default: 500)")
     parser.add_argument("--seed", type=int, default=SEED)
     args = parser.parse_args()
     means = make_means(K_ARMS, args.seed)
@@ -133,7 +137,7 @@ def main():
     if args.expt in ("b", "all"):
         evaluate_q_vary(means, args.horizon, args.trials, args.force_rerun, args.seed)
     if args.expt in ("c", "all"):
-        evaluate_mt(args.force_rerun, args.trials, args.seed)
+        evaluate_mt(args.force_rerun, args.c_trials, args.seed)
     if args.expt in ("d", "all"):
         evaluate_d(args.force_rerun, args.horizon, args.trials, args.seed)
 
