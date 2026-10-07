@@ -18,16 +18,6 @@ def run_parallel_hare(means, T, sigma_sq, env_type, num_trials, n_jobs=-1, seed=
     return np.vstack([result[0] for result in results])
 
 
-def run_parallel_hare_m_tilde_values(means, T, sigma_sq, env_type, num_trials, n_jobs=-1, seed=42):
-    """Return one run-level expected arm-mean trace for each independent run in Experiment C."""
-    print(f"Simulating {num_trials} independent HARE runs for $m_tilde values...")
-    results = Parallel(n_jobs=n_jobs)(
-        delayed(simulate_hare)(means, T, sigma_sq, env_type, seed + i)
-        for i in range(num_trials)
-    )
-    return np.vstack([result[1] for result in results])
-
-
 def run_parallel_welfarist(means, T, sigma_sq, env_type, p, num_trials, n_jobs=-1, seed=42):
     print(f"Spawning {num_trials} parallel Welfarist instances...")
     results = Parallel(n_jobs=n_jobs)(
@@ -84,13 +74,4 @@ def estimate_mean_reward_band(run_traces, confidence=0.95):
     return center, np.maximum(0.0, center - half_width), center + half_width
 
 
-def trailing_average(run_traces, window=10):
-    """Return each run's trailing window average, aligned to its right endpoint."""
-    run_traces = np.asarray(run_traces, dtype=float)
-    if run_traces.ndim != 2:
-        raise ValueError("run_traces must have shape (runs, rounds)")
-    if not 1 <= window <= run_traces.shape[1]:
-        raise ValueError("window must be between 1 and the number of rounds")
-    cumulative = np.pad(np.cumsum(run_traces, axis=1), ((0, 0), (1, 0)))
-    return (cumulative[:, window:] - cumulative[:, :-window]) / window
 

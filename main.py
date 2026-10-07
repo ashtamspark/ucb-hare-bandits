@@ -11,7 +11,6 @@ from experiments.runners import (
     run_parallel_explore_ucb,
     calculate_p_mean_regret,
     estimate_mean_reward_band,
-    trailing_average,
 )
 from utils.plotman import (
     plot_regret_comparison,
@@ -101,21 +100,9 @@ def evaluate_mt(force_rerun=False, trials=C_TRIALS, seed=SEED):
         title=rf"Monte Carlo estimate of $m_t$ ({trials:,} runs)",
     )
 
-    window = 10
-    smoothed_values = {name: trailing_average(values, window) for name, values in run_selected_means.items()}
-    smoothed_ts = ts[window - 1:]
-    smoothed_estimates = {
-        name: estimate_mean_reward_band(values) for name, values in smoothed_values.items()
-    }
-    plot_mt(
-        smoothed_ts, smoothed_estimates, "expt_C_smoothed.png",
-        title=rf"10-round average of $m_t$ ({trials:,} runs)",
-        ylabel=r"$\widehat{\bar m}_{t,10}$",
-    )
     paper_figures = Path(__file__).resolve().parent.parent / "figures"
     if paper_figures.is_dir():
         shutil.copy2(RESULTS / "expt_C_mc.png", paper_figures / "expt_C_mc.png")
-        shutil.copy2(RESULTS / "expt_C_smoothed.png", paper_figures / "expt_C_smoothed.png")
         print(f"Updated paper figures in {paper_figures}")
 
 
