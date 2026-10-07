@@ -17,6 +17,7 @@ from utils.plotman import (
     plot_regret_comparison,
     plot_q_ablation,
     plot_mt,
+    plot_regret_vs_time_multi_k,
 )
 from utils.cacheman import load_or_run
 
@@ -109,7 +110,6 @@ def evaluate_mt(force_rerun=False, trials=NUM_TRIALS, seed=SEED):
 
 def evaluate_d(force_rerun=False, horizon=T_MAX, trials=NUM_TRIALS, seed=SEED):
     """Optional k-ablation; saves one comparison plot for each p in {-1,-2,-5}."""
-    from utils.plotman import plot_k_comparison
     print("\nExperiment D: arm-count ablation")
     for p in (-1.0, -2.0, -5.0):
         curves = {}
@@ -118,9 +118,9 @@ def evaluate_d(force_rerun=False, horizon=T_MAX, trials=NUM_TRIALS, seed=SEED):
             np.random.default_rng(seed + k).shuffle(means)
             arms_hare = load_hare(means, horizon, trials, 1.0, force_rerun, seed + k)
             arms_wel = load_welfarist(means, horizon, trials, 1.0, p, force_rerun, seed + k + 10_000)
-            curves[f"UCB-HARE, k={k}"] = calculate_p_mean_regret(arms_hare, means, p)[0]
-            curves[f"Welfarist UCB, k={k}"] = calculate_p_mean_regret(arms_wel, means, p)[0]
-        plot_k_comparison(np.arange(1, horizon + 1), curves, p, f"q{int(abs(p))}.png")
+            curves[f"UCB-HARE_k{k}"] = calculate_p_mean_regret(arms_hare, means, p)[0]
+            curves[f"Welfarist UCB_k{k}"] = calculate_p_mean_regret(arms_wel, means, p)[0]
+        plot_regret_vs_time_multi_k(curves, p, f"q{int(abs(p))}.png")
 
 
 def main():

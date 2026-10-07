@@ -126,26 +126,55 @@ def plot_mt(ts, mt_dict, filename="expt_C_mc.png", smoothed_data=None):
     plt.close(fig)
 
 
-def plot_k_comparison(ts, curves, p, filename):
-    ts = np.asarray(ts)
-    fig, ax = plt.subplots(figsize=(7.2, 4.3))
-    mask = ts >= 1e2
-    for name, value in curves.items():
-        y = np.asarray(value)
-        color = "blue" if name.startswith("UCB-HARE") else "orange"
-        arm_count = name.rsplit("k=", 1)[-1].strip()
-        linestyle = "--" if arm_count == "10" else "-"
-        ax.plot(ts[mask], y[mask], color=color, linestyle=linestyle, linewidth=2, label=name)
-    ax.set(
-        xlabel="Round $t$ (log scale)", ylabel=r"$p$-mean regret",
-        title=rf"Fairness level $p = {p:g}$",
-    )
+def plot_regret_vs_time_multi_k(results_dict, p, filename="regret_vs_time.png"):
+    """Plot regret by algorithm and arm count using color and line style."""
+    fig, ax = plt.subplots(figsize=(8, 5.5))
+    base_colors = {"UCB-HARE": "#1f77b4", "Welfarist UCB": "#ff7f0e"}
+    deep_colors = {"UCB-HARE": "#0b5394", "Welfarist UCB": "#b45f06"}
+
+    for key, regret_array in results_dict.items():
+        try:
+            algo, k_val_str = key.rsplit("_", 1)
+            k_val = int(k_val_str[1:] if k_val_str.startswith("k") else k_val_str)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(
+                f"Expected result keys like 'UCB-HARE_k10'; received {key!r}"
+            ) from exc
+        if algo not in base_colors:
+            raise ValueError(f"Unsupported algorithm in result key {key!r}")
+
+        if k_val == 10:
+            color, linestyle, linewidth, zorder = deep_colors[algo], "--", 2.0, 4
+        else:
+            color, linestyle, linewidth, zorder = base_colors[algo], "-", 2.5, 3
+
+        regret = np.asarray(regret_array, dtype=float)
+        if regret.ndim != 1:
+            raise ValueError(f"Regret series {key!r} must be one-dimensional")
+        ts = np.arange(1, regret.size + 1)
+
+        # Begin at the requested 10^2 horizon and thin points for rendering.
+        keep = np.flatnonzero(ts >= 1e2)[::100]
+        if keep.size == 0 and ts.size:
+            keep = np.array([ts.size - 1])
+        ts_down, regret_down = ts[keep], regret[keep]
+        # Logarithmic y axes cannot display zero or negative regret values.
+        valid = np.isfinite(regret_down) & (regret_down > 0)
+        ax.plot(
+            ts_down[valid], regret_down[valid],
+            label=rf"{algo} ($k={k_val}$)", color=color,
+            linestyle=linestyle, linewidth=linewidth, zorder=zorder,
+        )
+
     ax.set_xscale("log")
-    # Keep the compact in-axes placement used by the original regret plots.
-    # The four entries fit in the upper-right without obscuring the early-time
-    # comparison, and avoid reserving a large strip above the axes.
-    ax.legend(loc="upper right", frameon=True, fontsize=9)
-    ax.grid(alpha=0.3)
+    ax.set_yscale("log")
+    ax.set_xlabel("Round $t$ (log scale)", fontsize=14)
+    ax.set_ylabel(rf"${p}$-mean regret (log scale)", fontsize=14)
+    ax.set_title(rf"Convergence Analysis ($p = {p}$)", fontsize=15)
+    ax.tick_params(axis="both", labelsize=12)
+    ax.legend(loc="lower left", prop={"size": 12})
+    ax.grid(True, which="both", linestyle="--", alpha=0.3)
     fig.tight_layout()
-    _save(fig, filename)
+    fig.savefig(RESULTS_DIR / filename, dpi=600, bbox_inches="tight")
     plt.close(fig)
+    print(f"\nPlot saved successfully to {RESULTS_DIR / filename}")
