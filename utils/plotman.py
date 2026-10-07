@@ -60,7 +60,7 @@ def _draw_bands(ax, ts, data, labels=None):
         label = labels.get(name, name) if labels else name
         if np.any(np.asarray(upper) > np.asarray(lower)):
             ax.fill_between(
-                ts, lower, upper, color=color, alpha=0.22, linewidth=0,
+                ts, lower, upper, color=color, alpha=0.25, linewidth=0,
                 label="_nolegend_", zorder=1,
             )
         series.append((name, y, color, label))
@@ -107,31 +107,14 @@ def plot_q_ablation(ts, regrets_dict, filename):
     plt.close(fig)
 
 
-def plot_mt_single_run(ts, run_values, filename="expt_C_single_run.png"):
-    """Plot one fixed-seed realization of the run-level quantity m_tilde."""
-    single_run = {name: values[0] for name, values in run_values.items()}
-    ts, data = _downsample(ts, single_run)
-    fig, ax = plt.subplots(figsize=(10, 4))
-    for name, values in data.items():
-        ax.step(ts, values, where="post", label=name, color=COLORS.get(name), linewidth=1.1)
-    ax.set_xlabel(r"Round $t$")
-    ax.set_ylabel(r"$\widetilde{m}_t^{(1)}$")
-    ax.set_title(r"One run: $\widetilde{m}_t^{(1)}$")
-    ax.legend(loc="best", frameon=True, fontsize=9)
-    ax.grid(alpha=0.3)
-    fig.tight_layout()
-    _save(fig, filename)
-    plt.close(fig)
-
-
-def plot_mt(ts, estimates, filename="expt_C_mc.png"):
-    """Plot the across-run estimate with pointwise 95% confidence bands."""
+def plot_mt(ts, estimates, filename="expt_C_mc.png", title=None, ylabel=r"$\widehat{m}_t$"):
+    """Plot an across-run estimate with pointwise 95% confidence bands."""
     ts, data = _downsample(ts, estimates)
     fig, ax = plt.subplots(figsize=(10, 4))
     _draw_bands(ax, ts, data)
     ax.set_xlabel(r"Round $t$")
-    ax.set_ylabel(r"$\widehat{m}_t$")
-    ax.set_title(r"Average over independent runs: $\widehat{m}_t$")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title or r"Monte Carlo estimate of $m_t$")
     handles, labels = ax.get_legend_handles_labels()
     handles.append(Patch(facecolor="gray", alpha=0.22, edgecolor="none"))
     labels.append("Pointwise 95% confidence bands")

@@ -83,3 +83,14 @@ def estimate_mean_reward_band(run_traces, confidence=0.95):
     half_width = z * run_traces.std(axis=0, ddof=1) / np.sqrt(run_traces.shape[0])
     return center, np.maximum(0.0, center - half_width), center + half_width
 
+
+def trailing_average(run_traces, window=10):
+    """Return each run's trailing window average, aligned to its right endpoint."""
+    run_traces = np.asarray(run_traces, dtype=float)
+    if run_traces.ndim != 2:
+        raise ValueError("run_traces must have shape (runs, rounds)")
+    if not 1 <= window <= run_traces.shape[1]:
+        raise ValueError("window must be between 1 and the number of rounds")
+    cumulative = np.pad(np.cumsum(run_traces, axis=1), ((0, 0), (1, 0)))
+    return (cumulative[:, window:] - cumulative[:, :-window]) / window
+
