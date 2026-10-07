@@ -17,6 +17,7 @@ from utils.plotman import (
     plot_regret_comparison,
     plot_q_ablation,
     plot_mt,
+    plot_mt_single_run,
     plot_regret_vs_time_multi_k,
 )
 from utils.cacheman import load_or_run
@@ -103,11 +104,13 @@ def evaluate_mt(force_rerun=False, trials=C_TRIALS, seed=SEED):
         "Welfarist UCB": means[np.asarray(arms_wel, dtype=int)],
     }
     estimates = {name: estimate_mean_reward_band(values) for name, values in run_m_tilde.items()}
-    plot_mt(ts, run_m_tilde, estimates, "expt_C_mc.png")
+    plot_mt_single_run(ts, run_m_tilde, "expt_C_single_run.png")
+    plot_mt(ts, estimates, "expt_C_mc.png")
     paper_figures = Path(__file__).resolve().parent.parent / "figures"
     if paper_figures.is_dir():
         shutil.copy2(RESULTS / "expt_C_mc.png", paper_figures / "expt_C_mc.png")
-        print(f"Updated paper figure: {paper_figures / 'expt_C_mc.png'}")
+        shutil.copy2(RESULTS / "expt_C_single_run.png", paper_figures / "expt_C_single_run.png")
+        print(f"Updated paper figures in {paper_figures}")
 
 
 def evaluate_d(force_rerun=False, horizon=T_MAX, trials=NUM_TRIALS, seed=SEED):

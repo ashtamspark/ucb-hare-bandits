@@ -8,7 +8,7 @@ Run all experiments at the paper settings (one million rounds, 50 runs) from thi
 python main.py --expt all
 ```
 
-The same command can be launched from the parent directory as `python ucb-hare-bandits/main.py --expt all`; caches and plots are saved beside the code in either case. To redraw only the revised C and D figures from available caches, run `python main.py --expt c` and `python main.py --expt d`. Experiment C automatically copies its figure into the paper's `figures/` directory when run inside the AISTATS package. To update the D paper assets, copy `results/q1.png`, `q2.png`, and `q5.png` into `../UCB-HARE-AISTATS/figures/` before compiling the paper.
+The same command can be launched from the parent directory as `python ucb-hare-bandits/main.py --expt all`; caches and plots are saved beside the code in either case. To redraw only the revised C and D figures from available caches, run `python main.py --expt c` and `python main.py --expt d`. Experiment C saves separate `expt_C_single_run.png` and `expt_C_mc.png` files, and copies both into the paper's `figures/` directory when run inside the AISTATS package. To update the D paper assets, copy `results/q1.png`, `q2.png`, and `q5.png` into `../UCB-HARE-AISTATS/figures/` before compiling the paper.
 
 Run Experiment C with `python main.py --expt c` (1,000 independent runs by default). Use `--c-trials R` to choose a different number of runs. The CLI accepts `a`, `b`, `c`, `d`, or `all`; `--trials` controls A, B, and D, `--force-rerun` ignores saved simulation matrices, and `--seed` sets the deterministic seed sequence. Results are written to `results/`, and simulation matrices are cached under `cached_data/`. Cache keys include the horizon, trial count, reward variance, mean vector, and seed.
 

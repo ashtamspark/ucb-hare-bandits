@@ -107,31 +107,36 @@ def plot_q_ablation(ts, regrets_dict, filename):
     plt.close(fig)
 
 
-def plot_mt(ts, run_values, estimates, filename="expt_C_mc.png"):
-    """Show one run-level trace and the across-run estimate with 95% bands."""
-    ts, run_data = _downsample(ts, {name: values[0] for name, values in run_values.items()})
-    ts, mean_data = _downsample(ts, estimates)
-    num_runs = next(iter(run_values.values())).shape[0]
-    fig, (ax_run, ax_mean) = plt.subplots(1, 2, figsize=(10.5, 4.0), sharex=True, sharey=True)
+def plot_mt_single_run(ts, run_values, filename="expt_C_single_run.png"):
+    """Plot one fixed-seed realization of the run-level quantity m_tilde."""
+    single_run = {name: values[0] for name, values in run_values.items()}
+    ts, data = _downsample(ts, single_run)
+    fig, ax = plt.subplots(figsize=(10, 4))
+    for name, values in data.items():
+        ax.step(ts, values, where="post", label=name, color=COLORS.get(name), linewidth=1.1)
+    ax.set_xlabel(r"Round $t$")
+    ax.set_ylabel(r"$\widetilde{m}_t^{(1)}$")
+    ax.set_title(r"One run: $\widetilde{m}_t^{(1)}$")
+    ax.legend(loc="best", frameon=True, fontsize=9)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    _save(fig, filename)
+    plt.close(fig)
 
-    for name, values in run_data.items():
-        ax_run.step(ts, values, where="post", label=name, color=COLORS.get(name), linewidth=1.1)
-    ax_run.set_title(r"One run ($\widetilde{m}_t^{(1)}$)")
-    ax_run.set_xlabel(r"Round $t$")
-    ax_run.set_ylabel(r"$\widetilde{m}_t^{(1)}$")
-    ax_run.legend(loc="best", frameon=True, fontsize=8)
-    ax_run.grid(alpha=0.3)
 
-    _draw_bands(ax_mean, ts, mean_data)
-    ax_mean.set_title(rf"Average over {num_runs:,} runs ($\widehat{{m}}_t$)")
-    ax_mean.set_xlabel(r"Round $t$")
-    ax_mean.set_ylabel(r"$\widehat{m}_t$")
-    handles, labels = ax_mean.get_legend_handles_labels()
+def plot_mt(ts, estimates, filename="expt_C_mc.png"):
+    """Plot the across-run estimate with pointwise 95% confidence bands."""
+    ts, data = _downsample(ts, estimates)
+    fig, ax = plt.subplots(figsize=(10, 4))
+    _draw_bands(ax, ts, data)
+    ax.set_xlabel(r"Round $t$")
+    ax.set_ylabel(r"$\widehat{m}_t$")
+    ax.set_title(r"Average over independent runs: $\widehat{m}_t$")
+    handles, labels = ax.get_legend_handles_labels()
     handles.append(Patch(facecolor="gray", alpha=0.22, edgecolor="none"))
     labels.append("Pointwise 95% confidence bands")
-    ax_mean.legend(handles, labels, loc="best", frameon=True, fontsize=8)
-    ax_mean.grid(alpha=0.3)
-
+    ax.legend(handles, labels, loc="best", frameon=True, fontsize=9)
+    ax.grid(alpha=0.3)
     fig.tight_layout()
     _save(fig, filename)
     plt.close(fig)
