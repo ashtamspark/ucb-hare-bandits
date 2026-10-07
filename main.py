@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 from pathlib import Path
+import shutil
 import numpy as np
 
 from experiments.runners import (
@@ -25,7 +26,7 @@ RESULTS.mkdir(parents=True, exist_ok=True)
 SEED = 42
 T_MAX = 1_000_000
 NUM_TRIALS = 50
-C_TRIALS = 500
+C_TRIALS = 1_000
 SIGMA_SQ = 400.0
 ENV_TYPE = 1
 K_ARMS = 50
@@ -102,7 +103,11 @@ def evaluate_mt(force_rerun=False, trials=C_TRIALS, seed=SEED):
         "Welfarist UCB": means[np.asarray(arms_wel, dtype=int)],
     }
     estimates = {name: estimate_mean_reward_band(values) for name, values in run_m_tilde.items()}
-    plot_mt(ts, estimates, "expt_C_mc.png")
+    plot_mt(ts, run_m_tilde, estimates, "expt_C_mc.png")
+    paper_figures = Path(__file__).resolve().parent.parent / "figures"
+    if paper_figures.is_dir():
+        shutil.copy2(RESULTS / "expt_C_mc.png", paper_figures / "expt_C_mc.png")
+        print(f"Updated paper figure: {paper_figures / 'expt_C_mc.png'}")
 
 
 def evaluate_d(force_rerun=False, horizon=T_MAX, trials=NUM_TRIALS, seed=SEED):
@@ -128,7 +133,7 @@ def main():
     parser.add_argument("--trials", type=int, default=NUM_TRIALS,
                         help="Independent runs for Experiments A, B, and D")
     parser.add_argument("--c-trials", type=int, default=C_TRIALS,
-                        help="Independent runs for Experiment C (default: 500)")
+                        help="Independent runs for Experiment C (default: 1000)")
     parser.add_argument("--seed", type=int, default=SEED)
     args = parser.parse_args()
     means = make_means(K_ARMS, args.seed)

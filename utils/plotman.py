@@ -2,6 +2,7 @@
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import numpy as np
 from pathlib import Path
 
@@ -59,7 +60,7 @@ def _draw_bands(ax, ts, data, labels=None):
         label = labels.get(name, name) if labels else name
         if np.any(np.asarray(upper) > np.asarray(lower)):
             ax.fill_between(
-                ts, lower, upper, color=color, alpha=0.14, linewidth=0,
+                ts, lower, upper, color=color, alpha=0.22, linewidth=0,
                 label="_nolegend_", zorder=1,
             )
         series.append((name, y, color, label))
@@ -106,16 +107,31 @@ def plot_q_ablation(ts, regrets_dict, filename):
     plt.close(fig)
 
 
-def plot_mt(ts, mt_dict, filename="expt_C_mc.png"):
-    """Plot the across-run estimate of m_t with pointwise Monte Carlo intervals."""
-    ts, data = _downsample(ts, mt_dict)
-    fig, ax = plt.subplots(figsize=(7.2, 3.8))
-    _draw_bands(ax, ts, data)
-    ax.set_xlabel("Round $t$")
-    ax.set_ylabel(r"Estimate $\widehat{m}_t$")
-    ax.set_title(r"Monte Carlo estimate of $m_t$")
-    ax.legend(loc="best", frameon=True, fontsize=9)
-    ax.grid(alpha=0.3)
+def plot_mt(ts, run_values, estimates, filename="expt_C_mc.png"):
+    """Show one run-level trace and the across-run estimate with 95% bands."""
+    ts, run_data = _downsample(ts, {name: values[0] for name, values in run_values.items()})
+    ts, mean_data = _downsample(ts, estimates)
+    num_runs = next(iter(run_values.values())).shape[0]
+    fig, (ax_run, ax_mean) = plt.subplots(1, 2, figsize=(10.5, 4.0), sharex=True, sharey=True)
+
+    for name, values in run_data.items():
+        ax_run.step(ts, values, where="post", label=name, color=COLORS.get(name), linewidth=1.1)
+    ax_run.set_title(r"One run ($\widetilde{m}_t^{(1)}$)")
+    ax_run.set_xlabel(r"Round $t$")
+    ax_run.set_ylabel(r"$\widetilde{m}_t^{(1)}$")
+    ax_run.legend(loc="best", frameon=True, fontsize=8)
+    ax_run.grid(alpha=0.3)
+
+    _draw_bands(ax_mean, ts, mean_data)
+    ax_mean.set_title(rf"Average over {num_runs:,} runs ($\widehat{{m}}_t$)")
+    ax_mean.set_xlabel(r"Round $t$")
+    ax_mean.set_ylabel(r"$\widehat{m}_t$")
+    handles, labels = ax_mean.get_legend_handles_labels()
+    handles.append(Patch(facecolor="gray", alpha=0.22, edgecolor="none"))
+    labels.append("Pointwise 95% confidence bands")
+    ax_mean.legend(handles, labels, loc="best", frameon=True, fontsize=8)
+    ax_mean.grid(alpha=0.3)
+
     fig.tight_layout()
     _save(fig, filename)
     plt.close(fig)
