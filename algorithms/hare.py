@@ -26,6 +26,7 @@ def simulate_hare(means, T, sigma2, env_type, seed=0):
     Runs a single trial of the UCB-HARE algorithm.
     Uses the divisor harmonic schedule and the paper's block-boundary stopping rule.
     The confidence level is delta=1/T, as used for the paper's main guarantee.
+    Returns chosen arms and the run-level expected mean $m_tilde at each round.
     """
     np.random.seed(seed)
     k = len(means)
@@ -34,7 +35,7 @@ def simulate_hare(means, T, sigma2, env_type, seed=0):
     sums = np.zeros(k, dtype=np.float64)
     mu_hat = np.zeros(k, dtype=np.float64)
     arms = np.empty(T, dtype=np.int64)
-    policy_values = np.empty(T, dtype=np.float64)
+    m_tilde = np.empty(T, dtype=np.float64)
     
     # Paper's delta=1/T setting: L = log(8*k*T/delta).
     L = np.log(8.0 * k * T * T)
@@ -100,7 +101,7 @@ def simulate_hare(means, T, sigma2, env_type, seed=0):
             if slot == 0:
                 first_choice_scheduled_first = scheduled_arm
                 first_choice_auxiliary_first = auxiliary_arm
-                policy_values[t] = 0.5 * (means[scheduled_arm] + means[auxiliary_arm])
+                m_tilde[t] = 0.5 * (means[scheduled_arm] + means[auxiliary_arm])
             else:
                 w_scheduled_first = 1.0 if arms[t - 1] == first_choice_scheduled_first else 0.0
                 w_auxiliary_first = 1.0 if arms[t - 1] == first_choice_auxiliary_first else 0.0
@@ -108,7 +109,7 @@ def simulate_hare(means, T, sigma2, env_type, seed=0):
                     w_scheduled_first = 0.5
                     w_auxiliary_first = 0.5
                 auxiliary_now = best_anchor if B_t > 0 else scheduled_arm
-                policy_values[t] = (
+                m_tilde[t] = (
                     w_scheduled_first * means[auxiliary_now]
                     + w_auxiliary_first * means[scheduled_arm]
                 ) / (w_scheduled_first + w_auxiliary_first)
@@ -139,7 +140,7 @@ def simulate_hare(means, T, sigma2, env_type, seed=0):
                 best_ucb = ucb_val
                 chosen_arm = i
                 
-        policy_values[t] = means[chosen_arm]
+        m_tilde[t] = means[chosen_arm]
         r = sample_reward(means[chosen_arm], sigma2, env_type)
         n_pulls[chosen_arm] += 1
         sums[chosen_arm] += r
@@ -147,4 +148,4 @@ def simulate_hare(means, T, sigma2, env_type, seed=0):
         arms[t] = chosen_arm
         t += 1
         
-    return arms, policy_values
+    return arms, m_tilde

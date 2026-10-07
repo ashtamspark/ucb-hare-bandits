@@ -6,12 +6,11 @@ import numpy as np
 
 from experiments.runners import (
     run_parallel_hare,
-    run_parallel_hare_policy_values,
+    run_parallel_hare_m_tilde_values,
     run_parallel_welfarist,
     run_parallel_explore_ucb,
     calculate_p_mean_regret,
     estimate_mean_reward_band,
-    moving_average_traces,
 )
 from utils.plotman import (
     plot_regret_comparison,
@@ -83,29 +82,26 @@ def evaluate_q_vary(means, horizon, trials, force_rerun=False, seed=SEED):
 
 
 def evaluate_mt(force_rerun=False, trials=NUM_TRIALS, seed=SEED):
-    print("\nExperiment C: across-run estimate of expected reward")
+    print("\nExperiment C: estimating m_t from independent runs")
     means = np.array([200.0, 400.0, 600.0, 800.0, 1000.0] + [10.0] * 195)
     horizon, sigma_sq, p = 5_000, 400.0, -2.0
     ts = np.arange(1, horizon + 1)
-    policy_cache = cache_name("hare_policy_values", means, horizon, trials, sigma_sq, seed + 30_000)
-    hare_policy_values = load_or_run(
-        policy_cache,
-        lambda: run_parallel_hare_policy_values(
+    m_tilde_cache = cache_name("hare_policy_values", means, horizon, trials, sigma_sq, seed + 30_000)
+    hare_m_tilde_values = load_or_run(
+        m_tilde_cache,
+        lambda: run_parallel_hare_m_tilde_values(
             means, horizon, sigma_sq, ENV_TYPE, trials, seed=seed + 30_000
         ),
         force_rerun,
     )
     arms_wel = load_welfarist(means, horizon, trials, sigma_sq, p, force_rerun, seed + 40_000)
-    run_values = {
-        "UCB-HARE": hare_policy_values,
+    # Each row is one independent run-level value trace, $m_tilde^{(r)}$.
+    run_m_tilde = {
+        "UCB-HARE": hare_m_tilde_values,
         "Welfarist UCB": means[np.asarray(arms_wel, dtype=int)],
     }
-    pointwise = {name: estimate_mean_reward_band(values) for name, values in run_values.items()}
-    smoothed = {
-        name: estimate_mean_reward_band(moving_average_traces(values, window=500))
-        for name, values in run_values.items()
-    }
-    plot_mt(ts, pointwise, "expt_C_mc.png", smoothed_data=smoothed)
+    estimates = {name: estimate_mean_reward_band(values) for name, values in run_m_tilde.items()}
+    plot_mt(ts, estimates, "expt_C_mc.png")
 
 
 def evaluate_d(force_rerun=False, horizon=T_MAX, trials=NUM_TRIALS, seed=SEED):

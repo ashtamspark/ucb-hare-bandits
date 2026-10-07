@@ -106,25 +106,19 @@ def plot_q_ablation(ts, regrets_dict, filename):
     plt.close(fig)
 
 
-def plot_mt(ts, mt_dict, filename="expt_C_mc.png", smoothed_data=None):
-    original_ts = np.asarray(ts)
-    ts, data = _downsample(original_ts, mt_dict)
-    fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.6), sharey=True)
-    if smoothed_data is not None:
-        _, smoothed = _downsample(original_ts, smoothed_data)
-        _draw_bands(axes[0], ts, smoothed)
-        axes[0].set_title("500-round moving average")
-    _draw_bands(axes[1], ts, data)
-    axes[1].set_title(r"Per-round estimate of $m_t$")
-    for ax in axes:
-        ax.set_xlabel('Round $t$')
-        ax.legend(loc='best', frameon=True, fontsize=8)
-        ax.grid(alpha=0.3)
-    axes[0].set_ylabel(r"Expected arm mean $m_t=\mathbb{E}[\mu_{I_t}]$")
+def plot_mt(ts, mt_dict, filename="expt_C_mc.png"):
+    """Plot the across-run estimate of m_t with pointwise Monte Carlo intervals."""
+    ts, data = _downsample(ts, mt_dict)
+    fig, ax = plt.subplots(figsize=(7.2, 3.8))
+    _draw_bands(ax, ts, data)
+    ax.set_xlabel("Round $t$")
+    ax.set_ylabel(r"Estimate $\widehat{m}_t$")
+    ax.set_title(r"Across-run estimate of $m_t$")
+    ax.legend(loc="best", frameon=True, fontsize=9)
+    ax.grid(alpha=0.3)
     fig.tight_layout()
     _save(fig, filename)
     plt.close(fig)
-
 
 def plot_regret_vs_time_multi_k(results_dict, p, filename="regret_vs_time.png"):
     """Plot regret by algorithm and arm count using color and line style."""

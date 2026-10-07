@@ -9,7 +9,7 @@ from algorithms.explore_ucb import simulate_explore_ucb
 
 
 def run_parallel_hare(means, T, sigma_sq, env_type, num_trials, n_jobs=-1, seed=42):
-    """Return action histories; policy-value traces are used in Experiment C."""
+    """Return chosen-arm histories for each independent run."""
     print(f"Spawning {num_trials} parallel HARE instances...")
     results = Parallel(n_jobs=n_jobs)(
         delayed(simulate_hare)(means, T, sigma_sq, env_type, seed + i)
@@ -18,9 +18,9 @@ def run_parallel_hare(means, T, sigma_sq, env_type, num_trials, n_jobs=-1, seed=
     return np.vstack([result[0] for result in results])
 
 
-def run_parallel_hare_policy_values(means, T, sigma_sq, env_type, num_trials, n_jobs=-1, seed=42):
-    """Return per-run values E[mu_{I_t} | pi, H_{t-1}] for Experiment C."""
-    print(f"Spawning {num_trials} parallel HARE policy-value traces...")
+def run_parallel_hare_m_tilde_values(means, T, sigma_sq, env_type, num_trials, n_jobs=-1, seed=42):
+    """Return one run-level expected arm-mean trace for each independent run in Experiment C."""
+    print(f"Simulating {num_trials} independent HARE runs for $m_tilde values...")
     results = Parallel(n_jobs=n_jobs)(
         delayed(simulate_hare)(means, T, sigma_sq, env_type, seed + i)
         for i in range(num_trials)
@@ -74,7 +74,7 @@ def calculate_p_mean_regret(arms_matrix, means, p):
 
 
 def estimate_mean_reward_band(run_traces, confidence=0.95):
-    """Pointwise normal interval for the across-run mean of per-run m_t traces."""
+    """Estimate m_t and pointwise normal intervals from independent run-level m_t traces."""
     run_traces = np.asarray(run_traces, dtype=float)
     center = run_traces.mean(axis=0)
     if run_traces.shape[0] < 2:
@@ -83,20 +83,3 @@ def estimate_mean_reward_band(run_traces, confidence=0.95):
     half_width = z * run_traces.std(axis=0, ddof=1) / np.sqrt(run_traces.shape[0])
     return center, np.maximum(0.0, center - half_width), center + half_width
 
-
-def moving_average_traces(run_traces, window=500):
-    """Centered, edge-corrected moving average of each independent run trace."""
-    traces = np.asarray(run_traces, dtype=float)
-    if traces.ndim != 2:
-        raise ValueError("run_traces must have shape (runs, rounds)")
-    if window < 1:
-        raise ValueError("window must be positive")
-    left = window // 2
-    right = window - left
-    cumulative = np.concatenate(
-        (np.zeros((traces.shape[0], 1)), np.cumsum(traces, axis=1)), axis=1
-    )
-    rounds = np.arange(traces.shape[1])
-    start = np.maximum(0, rounds - left)
-    stop = np.minimum(traces.shape[1], rounds + right)
-    return (cumulative[:, stop] - cumulative[:, start]) / (stop - start)
