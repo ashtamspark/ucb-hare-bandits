@@ -164,7 +164,7 @@ def plot_regret_vs_time_multi_k(results_dict, p, filename="regret_vs_time.png"):
     ax.set_yscale("log")
     ax.set_xlabel("Round $t$ (log scale)", fontsize=14)
     ax.set_ylabel(rf"${p}$-mean regret (log scale)", fontsize=14)
-    ax.set_title(rf"Convergence Analysis ($p = {p}$)", fontsize=15)
+    ax.set_title(rf"Fairness level ($p = {p}$)", fontsize=15)
     ax.tick_params(axis="both", labelsize=12)
     ax.legend(loc="lower left", prop={"size": 12})
     ax.grid(True, which="both", linestyle="--", alpha=0.3)
