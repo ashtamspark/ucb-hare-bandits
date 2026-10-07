@@ -7,7 +7,6 @@ import numpy as np
 
 from experiments.runners import (
     run_parallel_hare,
-    run_parallel_hare_m_tilde_values,
     run_parallel_welfarist,
     run_parallel_explore_ucb,
     calculate_p_mean_regret,
@@ -89,28 +88,21 @@ def evaluate_mt(force_rerun=False, trials=C_TRIALS, seed=SEED):
     means = np.array([200.0, 400.0, 600.0, 800.0, 1000.0] + [10.0] * 195)
     horizon, sigma_sq, p = 5_000, 400.0, -2.0
     ts = np.arange(1, horizon + 1)
-    m_tilde_cache = cache_name("hare_policy_values", means, horizon, trials, sigma_sq, seed + 30_000)
-    hare_m_tilde_values = load_or_run(
-        m_tilde_cache,
-        lambda: run_parallel_hare_m_tilde_values(
-            means, horizon, sigma_sq, ENV_TYPE, trials, seed=seed + 30_000
-        ),
-        force_rerun,
-    )
+    arms_hare = load_hare(means, horizon, trials, sigma_sq, force_rerun, seed + 30_000)
     arms_wel = load_welfarist(means, horizon, trials, sigma_sq, p, force_rerun, seed + 40_000)
-    # Each row is one independent run-level value trace, $m_tilde^{(r)}$.
-    run_m_tilde = {
-        "UCB-HARE": hare_m_tilde_values,
+    # Each row is one run's sequence of true means for the arms actually selected.
+    run_selected_means = {
+        "UCB-HARE": means[np.asarray(arms_hare, dtype=int)],
         "Welfarist UCB": means[np.asarray(arms_wel, dtype=int)],
     }
-    estimates = {name: estimate_mean_reward_band(values) for name, values in run_m_tilde.items()}
+    estimates = {name: estimate_mean_reward_band(values) for name, values in run_selected_means.items()}
     plot_mt(
         ts, estimates, "expt_C_mc.png",
         title=rf"Monte Carlo estimate of $m_t$ ({trials:,} runs)",
     )
 
     window = 10
-    smoothed_values = {name: trailing_average(values, window) for name, values in run_m_tilde.items()}
+    smoothed_values = {name: trailing_average(values, window) for name, values in run_selected_means.items()}
     smoothed_ts = ts[window - 1:]
     smoothed_estimates = {
         name: estimate_mean_reward_band(values) for name, values in smoothed_values.items()
